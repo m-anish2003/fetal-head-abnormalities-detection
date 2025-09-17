@@ -1,0 +1,12 @@
+================ Training Loss (Sun Aug 31 01:10:19 2025) ================
+(epoch: 1, iters: 10, time: 1.821) G_GAN: 1.959 G_GAN_Feat: 11.656 G_VGG: 6.944 D_real: 1.228 D_fake: 1.906 
+(epoch: 1, iters: 20, time: 1.780) G_GAN: 1.908 G_GAN_Feat: 10.810 G_VGG: 6.198 D_real: 1.214 D_fake: 1.341 
+(epoch: 1, iters: 30, time: 1.821) G_GAN: 1.319 G_GAN_Feat: 10.319 G_VGG: 6.496 D_real: 0.682 D_fake: 0.429 
+(epoch: 1, iters: 40, time: 1.766) G_GAN: 2.115 G_GAN_Feat: 7.194 G_VGG: 5.593 D_real: 1.575 D_fake: 0.932 
+(epoch: 1, iters: 50, time: 1.759) G_GAN: 0.993 G_GAN_Feat: 6.846 G_VGG: 6.019 D_real: 0.822 D_fake: 0.688 
+(epoch: 1, iters: 60, time: 1.818) G_GAN: 1.058 G_GAN_Feat: 5.282 G_VGG: 4.878 D_real: 0.603 D_fake: 0.487 
+(epoch: 1, iters: 70, time: 1.734) G_GAN: 1.268 G_GAN_Feat: 6.729 G_VGG: 5.722 D_real: 1.132 D_fake: 0.714 
+(epoch: 1, iters: 80, time: 1.767) G_GAN: 1.544 G_GAN_Feat: 7.286 G_VGG: 5.695 D_real: 0.833 D_fake: 0.480 
+(epoch: 1, iters: 90, time: 1.769) G_GAN: 1.288 G_GAN_Feat: 9.758 G_VGG: 6.304 D_real: 0.436 D_fake: 0.355 
+(epoch: 1, iters: 100, time: 1.809) G_GAN: 1.359 G_GAN_Feat: 5.199 G_VGG: 4.729 D_real: 1.241 D_fake: 0.325 
+(epoch: 1, iters: 110, time: 1.777) G_GAN: 1.409 G_GAN_Feat: 9.546 G_VGG: 6.501 D_real: 0.400 D_fake: 0.227 

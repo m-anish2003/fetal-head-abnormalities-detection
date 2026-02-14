@@ -1,0 +1,14 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.ipynb
+.ipynb_checkpoints
+raw_dataset
+data
+notebooks
+predictions
+artifacts/benchmark
+tests

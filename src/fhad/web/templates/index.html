@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fetal Head Abnormality Detection</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Fetal Head Abnormality Detection</h1>
+    <p>AI-assisted ultrasound segmentation and risk pattern screening</p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Upload Ultrasound Image</h2>
+      <p class="muted">Upload one fetal ultrasound image to get model inference.</p>
+      <form id="predict-form">
+        <input id="file-input" type="file" accept="image/*" required />
+        <button type="submit">Run Detection</button>
+      </form>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="card" id="result-card" hidden>
+      <h2>Prediction Result</h2>
+      <div class="result-grid">
+        <div><strong>File:</strong> <span id="r-file"></span></div>
+        <div><strong>Mean Probability:</strong> <span id="r-prob"></span></div>
+        <div><strong>Foreground Ratio:</strong> <span id="r-ratio"></span></div>
+        <div><strong>Risk Label:</strong> <span id="r-risk"></span></div>
+      </div>
+      <p class="warn">Important: This tool is for research support only and is not a clinical diagnosis.</p>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('predict-form');
+    const fileInput = document.getElementById('file-input');
+    const statusEl = document.getElementById('status');
+    const resultCard = document.getElementById('result-card');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      statusEl.textContent = 'Running detection...';
+      resultCard.hidden = true;
+
+      const data = new FormData();
+      data.append('file', file);
+
+      try {
+        const res = await fetch('/api/predict', { method: 'POST', body: data });
+        const body = await res.json();
+        if (!res.ok) {
+          statusEl.textContent = body.detail || 'Prediction failed';
+          return;
+        }
+
+        document.getElementById('r-file').textContent = body.filename;
+        document.getElementById('r-prob').textContent = Number(body.mean_probability).toFixed(4);
+        document.getElementById('r-ratio').textContent = Number(body.foreground_ratio).toFixed(4);
+        document.getElementById('r-risk').textContent = body.risk_label;
+
+        statusEl.textContent = 'Done.';
+        resultCard.hidden = false;
+      } catch (err) {
+        statusEl.textContent = 'Server unreachable. Make sure backend is running.';
+      }
+    });
+  </script>
+</body>
+</html>

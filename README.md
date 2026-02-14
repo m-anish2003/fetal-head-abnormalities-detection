@@ -1,229 +1,167 @@
-# Fetal Head Abnormalities Detection Project
+# Fetal Head Abnormalities Detection
 
-## 📖 Overview
-This project focuses on detecting fetal head abnormalities from ultrasound images using deep learning techniques. The implementation includes data preprocessing, baseline UNet training, synthetic data generation, and Pix2PixHD training for enhanced image segmentation.
+A production-oriented fetal ultrasound project with:
+- segmentation model training/evaluation,
+- benchmark tooling for Dice/IoU optimization,
+- and a professional web interface for inference.
 
-## 🚀 Features
-- Data exploration and preprocessing pipelines
-- Baseline UNet model for segmentation
-- Synthetic data generation using GANs
-- Pix2PixHD implementation for high-resolution image translation
-- Comprehensive evaluation metrics
+## 1) Installation
 
-## 📁 Project Structure
-fetal-head-project/
-├── datasets/
-│ └── fetal_ultrasound/
-│ ├── train_A/ # Original ultrasound images
-│ └── train_B/ # Corresponding mask images
-├── notebooks/
-│ ├── 01_data_exploration_preprocessing.ipynb
-│ ├── 02_baseline_unet_training.ipynb
-│ ├── 03_synthetic_data_generation.ipynb
-│ ├── 04_pix2pixHD_training_and_inference.ipynb
-│ └── checkpoints/
-│ ├── baseline_unet.pth # 93.36 MB
-│ └── checkpoints_spade/
-│ ├── model_epoch_1.pth # 141.46 MB
-│ ├── model_epoch_2.pth # 141.46 MB
-│ └── ... (multiple large model files)
-├── src/
-│ ├── data_processing.py
-│ ├── models.py
-│ ├── utils.py
-│ └── visualization.py
-├── requirements.txt
-└── README.md
-
-
-
-# Installation
-
-## 1. Clone the repository
+### Standard
 ```bash
-git clone https://github.com/m-anish2003/fetal-head-abnormalities-detection.git
-cd fetal-head-abnormalities-detection
-``` 
+pip install -e .
+```
 
-
-2. Install dependencies
+### Constrained/offline/proxy fallback
 ```bash
 pip install -r requirements.txt
 ```
-🏗️ Usage
-Data Preprocessing
-```python
-from src.data_processing import DataPreprocessor
 
-
-preprocessor = DataPreprocessor()
-preprocessor.load_data('datasets/fetal_ultrasound/')
-preprocessor.preprocess_images()
-```
-Training Baseline UNet
-```python
-from src.models import UNet
-
-model = UNet()
-model.train('datasets/fetal_ultrasound/train_A/', 'datasets/fetal_ultrasound/train_B/')
-model.save('notebooks/checkpoints/baseline_unet.pth')
-```
-Synthetic Data Generation
-```python
-from src.models import GAN
-
-gan = GAN()
-gan.generate_synthetic_data()
-```
-Pix2PixHD Training
-```python
-from src.models import Pix2PixHD
-
-pix2pix_model = Pix2PixHD()
-pix2pix_model.train()
-pix2pix_model.save('notebooks/checkpoints_spade/')
-```
-📊 Results
-The model achieves the following performance metrics:
-
-Dice Coefficient: 0.92
-
-IoU: 0.87
-
-Precision: 0.94
-
-Recall: 0.89
-
-🔧 Git LFS Configuration
-Why Git LFS was Needed
-This project contains large model files (.pth files ranging from 93MB to 141MB) that exceed GitHub's file size limit of 100MB. Git LFS (Large File Storage) was implemented to:
-
-Store large files on a separate server
-
-Keep repository size manageable
-
-Enable version control for binary files
-
-Avoid GitHub rejection during pushes
-
-Git LFS Setup Commands
+### If editable install fails due build isolation
 ```bash
-# Initialize Git LFS
-git lfs install
-
-# Track large file types
-git lfs track "*.pth"
-git lfs track "*.h5"
-git lfs track "*.zip"
-git lfs track "*.pkl"
-
-# Add tracking configuration
-git add .gitattributes
+pip install --no-build-isolation -e .
 ```
-⚠️ Important Guidelines for Future Updates
-When Adding New Notebooks
-Clear Outputs Before Committing
+
+---
+
+## 2) Data Preparation
 
 ```bash
-# Clean notebook outputs
-jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace notebook.ipynb
+python scripts/organize_dataset.py \
+  --raw-train raw_dataset/training_data \
+  --raw-test raw_dataset/test_data \
+  --train-images data/train/images \
+  --train-masks data/train/masks \
+  --test-images data/test/images
 ```
-Use Sequential Numbering
-
 
 ```bash
-# Good naming convention
-05_new_analysis.ipynb
-06_model_evaluation.ipynb
+python scripts/check_alignment.py --images data/train/images --masks data/train/masks
 ```
-Add Comprehensive Documentation within notebooks using Markdown cells
 
-When Adding Large Files
-Always Use Git LFS for Large Files
+---
+
+## 3) Training (optimized)
+
+### Auto split (patient-aware by default)
+```bash
+python -m fhad.train \
+  --train-images data/train/images \
+  --train-masks data/train/masks \
+  --val-split 0.2 \
+  --loss bce_dice \
+  --output-dir artifacts
+```
+
+### Explicit val/test split (recommended final reporting)
+```bash
+python -m fhad.train \
+  --train-images data/train/images \
+  --train-masks data/train/masks \
+  --val-images data/val/images \
+  --val-masks data/val/masks \
+  --test-images data/test/images \
+  --test-masks data/test/masks \
+  --loss bce_dice \
+  --output-dir artifacts
+```
+
+Outputs:
+- `artifacts/best_model.pt`
+- `artifacts/metrics.json` (history + held-out test metrics when test data is provided)
+
+---
+
+## 4) Benchmark baseline vs optimized
 
 ```bash
-# Before adding new large files
-git lfs track "*.new_extension"
-git add .gitattributes
-
-# Then add files
-git add path/to/large/file.new_extension
+python -m fhad.train \
+  --train-images data/train/images \
+  --train-masks data/train/masks \
+  --epochs 10 \
+  --benchmark \
+  --output-dir artifacts/benchmark
 ```
-Verify File Sizes Before Committing
+
+Produces `artifacts/benchmark/benchmark.json` with:
+- `baseline_bce_noaug`
+- `bce_dice_aug`
+
+---
+
+## 5) Evaluate a checkpoint
 
 ```bash
-# Check file sizes
-du -h path/to/file
-
-# Files > 50MB should use LFS
+python -m fhad.evaluate \
+  --images data/test/images \
+  --masks data/test/masks \
+  --checkpoint artifacts/best_model.pt
 ```
-General Maintenance Rules
-Regularly Sync with Remote
+
+---
+
+## 6) CLI Inference
 
 ```bash
-git pull origin main
+python -m fhad.predict \
+  --input data/test/images \
+  --checkpoint artifacts/best_model.pt \
+  --output-dir predictions
 ```
-Use Descriptive Commit Messages
+
+Outputs:
+- `<name>_mask.png`
+- `predictions_summary.json` (mean probability, foreground ratio, risk label)
+
+---
+
+## 7) Professional Web App
+
+### Run backend (FastAPI)
+```bash
+FHAD_CHECKPOINT=artifacts/best_model.pt PORT=8000 ./scripts/run_web.sh
+```
+
+Then open:
+- UI: `http://localhost:8000`
+- Health: `http://localhost:8000/api/health`
+- API docs: `http://localhost:8000/docs`
+
+### What web app supports
+- Upload ultrasound image from browser.
+- Run model inference using saved checkpoint.
+- Return probability summary and risk label.
+- Ready for container/API deployment via `uvicorn`.
+
+> Important: Risk label is a research-support heuristic and **not** clinical diagnosis.
+
+---
+
+
+## 8) Docker (final production run)
+
+Build and run with Docker Compose:
+```bash
+docker compose up --build
+```
+
+Then open:
+- UI: `http://localhost:8000`
+- Health: `http://localhost:8000/api/health`
+- API docs: `http://localhost:8000/docs`
+
+Model path in container is controlled by:
+- `FHAD_CHECKPOINT` (default: `artifacts/best_model.pt`)
+
+Detailed hosting guide (GitHub + cloud options):
+- `docs/DEPLOYMENT.md`
+
+---
+## 9) Quality gates
 
 ```bash
-git commit -m "feat: add data augmentation techniques for ultrasound images"
-git commit -m "fix: resolve memory leak in data loader"
-git commit -m "docs: update training documentation"
+python -m compileall src scripts tests
+PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py' -v
 ```
-Keep Requirements Updated
 
-```bash
-# Generate updated requirements
-pip freeze > requirements.txt
-
-# Install new dependencies properly
-pip install new-package && pip freeze > requirements.txt
-🐛 Troubleshooting Guide
-Common Issues and Solutions
-LFS Files Not Tracking Properly
-
-bash
-# Re-initialize LFS tracking
-git lfs install
-git lfs track "*.pth"
-git add .gitattributes
-git add path/to/large_file.pth
-```
-Large File Push Errors
-
-```bash
-# Use force push if needed (with caution)
-git push --force origin main
-```
-Submodule Detection Issues
-
-```bash
-# Remove embedded git repositories
-rm -rf path/to/submodule/.git
-```
-Notebook Output Clearing
-
-```bash
-# Install nbconvert if not available
-pip install nbconvert
-
-# Clear outputs from all notebooks
-jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace notebooks/*.ipynb
-```
-👥 Contributors
-Manish Tiwari
-Aniket Kumar
-Satya Priya
-
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-🙏 Acknowledgments
-Medical imaging research community
-
-Ultrasound data providers and repositories
-
-Open-source deep learning frameworks (PyTorch, TensorFlow)
-
-Git LFS team for large file management solution
-
+CI (`.github/workflows/ci.yml`) runs compile + tests on push/PR.

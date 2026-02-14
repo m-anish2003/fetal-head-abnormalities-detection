@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  fhad-web:
+    build: .
+    container_name: fhad-web
+    ports:
+      - "8000:8000"
+    environment:
+      FHAD_CHECKPOINT: artifacts/best_model.pt
+      FHAD_IMAGE_SIZE: "256"
+      FHAD_THRESHOLD: "0.5"
+      HOST: 0.0.0.0
+      PORT: "8000"
+    volumes:
+      - ./artifacts:/app/artifacts
+    restart: unless-stopped

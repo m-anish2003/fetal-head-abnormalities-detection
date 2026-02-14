@@ -1,41 +1,51 @@
-import os, shutil, re
+from __future__ import annotations
 
-# Paths to your raw dataset
-raw_train_dir = r"C:\Users\MANISH\OneDrive\Desktop\fetal-head-project\raw_dataset\training_data"
-raw_test_dir  = r"C:\Users\MANISH\OneDrive\Desktop\fetal-head-project\raw_dataset\test_data"
+import argparse
+import re
+import shutil
+from pathlib import Path
 
-target_train_images = r"data/train/images"
-target_train_masks  = r"data/train/masks"
-target_test_images  = r"data/test/images"
 
-os.makedirs(target_train_images, exist_ok=True)
-os.makedirs(target_train_masks, exist_ok=True)
-os.makedirs(target_test_images, exist_ok=True)
+ANNOTATION_PATTERN = re.compile(r"_?annotation[s]?", flags=re.IGNORECASE)
 
-# --- Copy Training Data ---
-for root, dirs, files in os.walk(raw_train_dir):
-    for f in files:
-        if f.startswith("."):
+
+def copy_split(raw_dir: Path, target_images: Path, target_masks: Path | None = None) -> None:
+    target_images.mkdir(parents=True, exist_ok=True)
+    if target_masks:
+        target_masks.mkdir(parents=True, exist_ok=True)
+
+    for path in raw_dir.rglob("*"):
+        if not path.is_file() or path.name.startswith("."):
             continue
-        src_path = os.path.join(root, f)
 
-        if "annotation" in f.lower():
-            clean_name = re.sub(r'_?annotation[s]?','', f, flags=re.IGNORECASE)
-            dst_path = os.path.join(target_train_masks, clean_name)
+        if path.suffix.lower() not in {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}:
+            continue
+
+        if target_masks and "annotation" in path.name.lower():
+            clean_name = ANNOTATION_PATTERN.sub("", path.name)
+            shutil.copy(path, target_masks / clean_name)
         else:
-            dst_path = os.path.join(target_train_images, f)
+            shutil.copy(path, target_images / path.name)
 
-        shutil.copy(src_path, dst_path)
 
-print("Training data copied & renamed successfully!")
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Organize fetal head dataset into train/test folders")
+    p.add_argument("--raw-train", type=Path, default=Path("raw_dataset/training_data"))
+    p.add_argument("--raw-test", type=Path, default=Path("raw_dataset/test_data"))
+    p.add_argument("--train-images", type=Path, default=Path("data/train/images"))
+    p.add_argument("--train-masks", type=Path, default=Path("data/train/masks"))
+    p.add_argument("--test-images", type=Path, default=Path("data/test/images"))
+    return p.parse_args()
 
-# --- Copy Test Data ---
-for root, dirs, files in os.walk(raw_test_dir):
-    for f in files:
-        if f.startswith("."):
-            continue
-        src_path = os.path.join(root, f)
-        dst_path = os.path.join(target_test_images, f)
-        shutil.copy(src_path, dst_path)
 
-print("Test data copied successfully!")
+def main() -> None:
+    args = parse_args()
+    copy_split(args.raw_train, args.train_images, args.train_masks)
+    print("Training data copied & renamed successfully!")
+
+    copy_split(args.raw_test, args.test_images)
+    print("Test data copied successfully!")
+
+
+if __name__ == "__main__":
+    main()
